@@ -481,7 +481,10 @@ const scoreBox = document.querySelector(".score-box");
 const errorBox = document.querySelector(".errors-box");
 const levelsBtn = document.querySelectorAll(".levels-btn");
 const levelsWindow = document.querySelector(".levels");
-const returnBtn = document.querySelector(".return-btn");
+const pauseWindow = document.querySelector(".pause-window");
+const pauseBtn = document.querySelector(".pause-btn");
+const returnToMenuBtn = document.querySelectorAll(".return-btn");
+const returnToGameBtn = document.querySelector(".return-game-btn");
 const quitBtn = document.querySelector(".quit-btn");
 const quitBox = document.querySelector(".quit-box");
 const englishAllBtn = document.querySelector(".english-all");
@@ -489,6 +492,7 @@ const englishCountiesBtn = document.querySelector(".english-countries");
 const englishHardBtn = document.querySelector(".english-hard");
 const levelSwitchMsg = document.querySelector(".switch-level-msg");
 const healthBar = document.querySelector(".health-bar");
+
 // Выбранный список слов (по умолчанию arrayword)
 let selectedArray = arrayword;
 let play = false;
@@ -512,6 +516,7 @@ startBtn.addEventListener("click", () => {
   }, 4000);
 });
 
+// Т.к подразумевалось что кнопок лвл и return будет несколько (в стартовом меню и финальном сообщении), то перебираем массив кнопок через forEach
 levelsBtn.forEach((btn) => {
   btn.addEventListener("click", (event) => {
     event.preventDefault();
@@ -520,11 +525,31 @@ levelsBtn.forEach((btn) => {
   });
 });
 
-returnBtn.addEventListener("click", () => {
-  menuWindow.style.display = "flex";
-  levelsWindow.style.display = "none";
+returnToMenuBtn.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    event.preventDefault();
+    menuWindow.style.display = "flex";
+    levelsWindow.style.display = "none";
+    pauseWindow.style.display = "none";
+    endGame();
+  });
 });
 
+pauseBtn.addEventListener("click", (event) => {
+  if (play == true) {
+    play = false;
+    pauseWindow.style.display = "flex";
+  }
+});
+
+returnToGameBtn.addEventListener("click", (event) => {
+  play = true;
+  displayWord();
+  scoreBox.innerHTML = `${allScore}: + ${score}`;
+  pauseWindow.style.display = "none";
+});
+
+// Изменение лвла
 englishAllBtn.addEventListener("click", () => {
   selectedArray = arrayword;
   levelSwitchMsg.style.opacity = 100 + "%";
@@ -589,25 +614,56 @@ audioClick.volume = clickVolume;
 
 var audioDamage = new Audio("./sounds/mixkit-impact-of-a-blow-2150.wav");
 audioDamage.volume = damageVolume;
+
 let bosshp = 100;
-let difficultLevel = 100; // от 100(самый сложный) до 5(легкий)
+let difficultLevel = 100; // от 500(самый сложный) до 5(легкий)
+let wordCount = 0; // Счетчик написанных слов
+
 // Функция рандома и вывода слов
 function displayWord() {
   selectedWord =
     selectedArray[Math.floor(Math.random() * selectedArray.length)];
   wordBox.innerText = selectedWord;
   startTyping = new Date();
-  console.log(bosshp);
-  if (allScore >= 1000) {
+  if (score > 0) {
+    wordCount++;
+  }
+
+  // Нанесение урона
+  // только после третьего слова начинается наноситься урон
+  if (wordCount > 3) {
     bosshp -= score / difficultLevel;
     healthBar.style.background = `linear-gradient(90deg, rgba(255,0,0,1) ${bosshp}%, rgba(255,0,0,1) ${bosshp}%, rgba(21,0,0,1) ${bosshp}%, rgba(0,0,0,1) 96%)`;
-    audioDamage.play();
+    healthBar.innerHTML = Math.round(bosshp) + "%";
+    if (score > 0) {
+      audioDamage.play();
+    }
   }
-  if (errors > 5) {
-    bosshp += 20;
-    hp.innerHTML = bosshp;
+  if (bosshp <= 0) {
+    endGame();
   }
-  hp.innerHTML = Math.round(bosshp);
+
+  // Обнуляем очки,ошибки и номер введенной буквы (для того чтобы корректно работала кнопка паузы)
+  score = 0;
+  errors = 0;
+  numEnterLetter = 0;
+}
+
+function endGame() {
+  play = false;
+  bosshp = 100;
+  wordCount = 0;
+  allScore = 0;
+  score = 0;
+  errors = 0;
+  numEnterLetter = 0;
+  menuWindow.style.display = "flex";
+  healthBar.style.background = `linear-gradient(90deg, rgba(255,0,0,1) ${bosshp}%, rgba(255,0,0,1) ${bosshp}%, rgba(21,0,0,1) ${bosshp}%, rgba(0,0,0,1) 96%)`;
+  healthBar.innerHTML = Math.round(bosshp) + "%";
+  timeBox.innerHTML = "Time: 0";
+  errorBox.innerHTML = "Erorrs: 0";
+  scoreBox.innerHTML = `${allScore}: + ${score}`;
+  wordBox.innerText = "";
 }
 
 // console.log((date2.getTime() - date.getTime()) / 1000);
@@ -626,7 +682,7 @@ document.addEventListener("keydown", (event) => {
         wordBox.innerHTML = wordInBox;
 
         audioClick.play();
-
+        //Считаем сколько правильных букв введено пользователем и если их количество равно длине выбранного слова то ...
         numEnterLetter++;
         if (numEnterLetter >= selectedWord.length) {
           numEnterLetter = 0;
@@ -647,7 +703,7 @@ document.addEventListener("keydown", (event) => {
             score *= 2;
           } else if (time < 1) {
             score *= 1.5;
-          } else if (time > 4) {
+          } else if (time > 5) {
             score *= 0;
           }
 
@@ -660,8 +716,8 @@ document.addEventListener("keydown", (event) => {
           allScore += score;
           errors = 0;
           scoreBox.innerHTML = `${allScore}: + ${score}`;
-          errorBox.innerHTML = errors;
-          timeBox.innerHTML = time;
+          errorBox.innerHTML = "Erorrs: " + errors;
+          timeBox.innerHTML = "Time: " + time;
           displayWord();
         }
       } else {
@@ -669,10 +725,16 @@ document.addEventListener("keydown", (event) => {
         errors++;
         // Звук ошибки
         audioError.play();
-        errorBox.innerHTML = errors;
+        errorBox.innerHTML = "Erorrs: " + errors;
       }
     }
   }
 });
 
-// Сделать кнопки паузы и выхода
+// Придумать как украсить поля с ошибками и временем
+// Добавить боссов
+// Сделать смерть боссов
+// Если будет возможность подтянуть бд
+// Сделать лвл - безумие, в котором поле со словом будет при каждом новом слове появляться в другом месте, либо все время летать в разные стороны
+
+// Придумать новое распеределение счета за ошибки
