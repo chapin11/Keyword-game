@@ -1,0 +1,40 @@
+```
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Dependencies
+.venv/
+venv/
+__pycache__/
+node_modules/
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Original rules preserved
+*.log
+```
